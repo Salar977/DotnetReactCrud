@@ -1,5 +1,7 @@
 using Backend.Data;
+using Backend.Interfaces;
 using Backend.Middelware;
+using Backend.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -26,6 +28,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlite(connectionString);
 });
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 var app = builder.Build();
 
