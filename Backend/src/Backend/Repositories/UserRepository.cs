@@ -36,7 +36,7 @@ namespace Backend.Repositories
 
         public async Task<IEnumerable<User>> GetAllUsersAsync()
         {
-            return await dbContext.Users.ToListAsync();
+            return await dbContext.Users.AsNoTracking().ToListAsync();
         }
 
         public async Task<User?> GetUserByIdAsync(int id)
