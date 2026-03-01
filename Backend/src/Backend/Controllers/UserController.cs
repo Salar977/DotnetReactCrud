@@ -1,62 +1,56 @@
-﻿using Backend.Data;
+﻿using Backend.Interfaces;
 using Backend.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Controllers;
 
 [Route("api/v1/users")]
 [ApiController]
-public class UserController(AppDbContext dbContext) : ControllerBase
+public class UserController(IUserRepository userRepository) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> AddPerson(User user)
+    public async Task<ActionResult<User>> AddUser(User user)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        await dbContext.Users.AddAsync(user);
-        await dbContext.SaveChangesAsync();
+        var createdUser = await userRepository.AddUserAsync(user);
+
+        if(createdUser is null)
+            return BadRequest("Failed to create user.");
 
         return CreatedAtRoute("GetUserById", new{id = user.Id}, user);
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllUsers()
+    public async Task<ActionResult<IEnumerable<User>>> GetAllUsers()
     {
-        return Ok(await dbContext.Users.AsNoTracking().ToListAsync());
+        return Ok(await userRepository.GetAllUsersAsync());
     }
 
     [HttpGet("{id:int}", Name = "GetUserById")]
-    public async Task<IActionResult> GetUserById(int id)
+    public async Task<ActionResult<User>> GetUserById(int id)
     {
-        var user = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        var user = await userRepository.GetUserByIdAsync(id);
 
-        if(user is not null) return Ok(user);
+        if (user is not null) return Ok(user);
 
         return NotFound();
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> UpdateUser(int id, [FromBody] User user)
+    public async Task<ActionResult<User>> UpdateUser(int id, [FromBody] User user)
     {
-        var userToUpdate = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == id);
+        var userToUpdate = await userRepository.UpdateUserAsync(id, user);
         if (userToUpdate is null) return NotFound();
-
-        userToUpdate.FirstName = !string.IsNullOrEmpty(user.FirstName) ? user.FirstName : userToUpdate.FirstName;
-        userToUpdate.LastName = !string.IsNullOrEmpty(user.LastName) ? user.LastName : userToUpdate.LastName;
-
-        await dbContext.SaveChangesAsync();
         return NoContent();
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteUser(int id)
+    public async Task<ActionResult> DeleteUser(int id)
     {
-        var userToDelete = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == id);
-        if (userToDelete is null) return NotFound();
-        dbContext.Users.Remove(userToDelete);
-        await dbContext.SaveChangesAsync();
+        var userToDelete = await userRepository.DeleteUserAsync(id);
+        if (!userToDelete) return NotFound();
         return NoContent();
     }
 }
